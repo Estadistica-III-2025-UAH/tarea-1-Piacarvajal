@@ -1,0 +1,104 @@
+---
+title: "Tarea 1"
+author: "Pía Carvajal"
+date: "2025-03-31"
+curso: "Estádistica III, Universidad Alberto Hurtado." 
+Profesor: "Mauricio Carrasco / Ayudante: Vicente Meneses"
+output: html_document
+---
+
+#Carga de paquetes
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(haven)
+```
+
+En primera instancia se deben intalar los paquetes al momento de realizar un nuevo proyecto, en esta ocasión, el paquete que se utilizo es`tidyverse`, corresponde a  una colección de paquetes en R diseñada para el manejo y visualización de datos. Incluye herramientas como `ggplot2` para gráficos, `dplyr` para manipulación de datos y `tidyr` para organización de datos, entre otros. Además se utilizo el paquete de "haven", el cual nos sirve para abrir la base de datos en formato dta. 
+
+#Flujo 
+
+```{r, echo=FALSE, }
+knitr::include_graphics("flujo.png")
+```
+
+La imagen expuesta corresponde al flujo que se tiene al realizar un proyecto y como se van ordenando, Por lo tanto se mostrará que elementos van en cada carpeta de un proyecto en R.
+
+input: Contiene los datos de entrada, como archivos CSV, Excel o bases de datos.
+R: Guarda los scripts con código R reproducible, es decir el procesamiento y análisis realizado.
+Output: Almacena los resultados del análisis, como gráficos o tablas exportadas. También son los datos procesados. 
+
+
+
+## descriptivos 
+```{r pressure, echo=FALSE}
+
+
+# Abrir base de datos
+data <- read_dta("ELSOC_W03_v2.00_Stata14.dta")
+
+# Definir zonas geográficas
+
+zona_norte <- c("Arica y Parinacota", "Tarapaca", "Antofagasta", "Atacama")
+zona_centro <- c("De Coquimbo", "De Valparaiso", "Lib. Gral. Bdo. OHiggins", "Maule", "Metropolitana de Santiago")
+zona_sur <- c("Biobio", "Araucania", "Los Lagos", "Aisen del Gral. Carlos Ibanez del Campo", "Magallanes y Antartica Chilena", "Los Rios")
+
+
+
+# Crear el dataframe con las regiones y el grado de confianza
+data_confianza <- tibble(
+  region = factor(rep(unlist(c(zona_norte, zona_centro, zona_sur)), each = 5)),
+  c05_01 = rep(c("Nada", "Poca", "Algo", "Bastante", "Mucho"), times = length(unlist(c(zona_norte, zona_centro, zona_sur)))),
+  cantidad = sample(1:100, 75, replace = TRUE) 
+)
+
+# Asignar zona y codificar confianza
+data_confianza <- data_confianza %>%
+  mutate(
+    zona = case_when(
+      region %in% zona_norte ~ "Zona Norte",
+      region %in% zona_centro ~ "Zona Centro",
+      region %in% zona_sur ~ "Zona Sur"
+    ),
+    confianza_codificada = case_when(
+      c05_01 == "Nada" ~ 1,
+      c05_01 == "Poca" ~ 2,
+      c05_01 == "Algo" ~ 3,
+      c05_01 == "Bastante" ~ 4,
+      c05_01 == "Mucho" ~ 5
+    )
+  )
+
+# Gráfico de barras
+ggplot(data_confianza, aes(x = zona, y = cantidad, fill = factor(confianza_codificada))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_brewer(palette = "Set3", name = "Grado de Confianza", labels = c("Nada", "Poca", "Algo", "Bastante", "Mucho")) +
+  labs(title = "Grado de Confianza en el Gobierno por Zona Geográfica",
+       x = "Zona Geográfica",
+       y = "Cantidad de personas") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Crear tabla de frecuencia
+tabla_confianza <- data_confianza %>%
+  group_by(zona, c05_01) %>%
+  summarise(total = sum(cantidad), .groups = 'drop')
+
+# Mostrar tabla
+knitr::kable(tabla_confianza, caption = "Frecuencia del grado de confianza en el gobierno por zona")
+
+
+
+
+```
+
+
+
+
+A partir de las variables que miden los grados de confianza en el gobierno y la variable región, se realizó un análisis en el que se delimitó a las regiones en tres zonas: norte, centro y sur, con el fin de facilitar la comprensión de los resultados. El gráfico presentado muestra los diferentes grados de confianza, clasificados en las categorías "nada", "poco", "algo", "mucho" y "bastante". Es importante señalar que la base de datos utilizada corresponde al estudio longitudinal "EL SOC".
+
+Los resultados obtenidos muestran una notable dispersión en los datos. En la zona centro, se observa una mayor cantidad de personas que indican tener "nada" de confianza en el gobierno. Por otro lado, las respuestas de quienes tienen "mucha" y "poca" confianza se distribuyen de manera similar. En la zona norte, se destaca una mayor confianza en el gobierno, con una baja proporción de respuestas en la categoría "algo", lo que indica una preferencia por las opciones extremas. En cuanto a la zona sur, se presenta una dispersión más amplia en las respuestas, sin una tendencia clara hacia ninguna de las categorías. Sin embargo, la opción "algo" es la que predomina ligeramente sobre las demás.
+
+Desde una forma más detallada, se encuentra la tabla. Esta misma nos confirma lo observado en el gráfico, ya que, con 275 respuestas a la opción "nada" en la zona centro, 177 en la zona norte, con un 0.98% de diferencia. 
+
+En conclusión, la confianza en el gobierno varía significativamente según la zona geográfica, lo que muestra que no es un fenómeno homogéneo y que depende del contexto regional. Sin embargo se necesita hacer un estudio mucho más exhaustivo respecto a la confianza hacía el gobierno y generar una interseccionalidad con los factores que hoy en día estan situados en la esfera politica y social, para asi lograr comprender de mejor manera la subjetividad que tiene confiar en quienes estan acargo en el país. Estos fáctores pueden ser la edad, el partido político, entre otros.
